@@ -4,12 +4,12 @@ setup:
 	@bash setup.sh
 
 access:
-	@bash access.sh
+	@bash access.sh $(CLUSTER)
 
 teardown:
-	@bash teardown.sh
+	@bash teardown.sh $(CLUSTER)
 
 status:
-	@minikube status --profile=testcloud
+	@minikube profile list
 	@echo ""
-	@kubectl get pods -n argocd
+	@kubectl get pods -n argocd 2>/dev/null || echo "No active kubectl context."

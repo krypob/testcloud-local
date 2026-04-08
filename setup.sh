@@ -6,7 +6,6 @@ set -euo pipefail
 # minikube + ArgoCD
 # ──────────────────────────────────────────────
 
-CLUSTER_NAME="testcloud"
 ARGOCD_NAMESPACE="argocd"
 ARGOCD_VERSION="v2.10.4"
 
@@ -15,6 +14,46 @@ info()    { echo -e "${GREEN}[INFO]${NC}  $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 header()  { echo -e "\n${BOLD}${CYAN}$*${NC}"; }
+
+# ── select cluster name ───────────────────────
+select_cluster_name() {
+  header "── Cluster Name ────────────────────────────"
+
+  # list existing minikube profiles
+  local existing
+  existing=$(minikube profile list -o json 2>/dev/null \
+    | grep '"Name"' | awk -F'"' '{print $4}' | sort) || existing=""
+
+  if [[ -n "$existing" ]]; then
+    echo "  Existing clusters on this machine:"
+    while IFS= read -r p; do
+      local state
+      state=$(minikube status -p "$p" --format='{{.Host}}' 2>/dev/null || echo "Unknown")
+      printf "    • %-20s (%s)\n" "$p" "$state"
+    done <<< "$existing"
+    echo ""
+  fi
+
+  read -r -p "  Cluster name (default: testcloud): " name_input
+  CLUSTER_NAME="${name_input:-testcloud}"
+
+  # only allow alphanumeric + dash
+  if ! [[ "$CLUSTER_NAME" =~ ^[a-zA-Z0-9-]+$ ]]; then
+    warn "Invalid name '${CLUSTER_NAME}' — only letters, numbers, and hyphens allowed. Using 'testcloud'."
+    CLUSTER_NAME="testcloud"
+  fi
+
+  if minikube status -p "$CLUSTER_NAME" &>/dev/null; then
+    warn "Cluster '${CLUSTER_NAME}' already exists and is running."
+    read -r -p "  Continue anyway and skip cluster creation? (yes/no): " skip
+    if [[ "$skip" != "yes" ]]; then
+      echo "Aborted. Choose a different name or teardown the existing cluster first."
+      exit 0
+    fi
+  fi
+
+  info "Cluster name: ${CLUSTER_NAME}"
+}
 
 # ── dependency check ──────────────────────────
 check_deps() {
@@ -302,6 +341,7 @@ main() {
   echo -e "${NC}"
 
   check_deps
+  select_cluster_name
   select_k8s_version
   select_resources
   select_driver

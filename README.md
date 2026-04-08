@@ -194,23 +194,47 @@ argocd app create my-app \
 
 ---
 
+## Multiple Clusters
+
+You can run `setup.sh` multiple times with different names to create independent clusters — e.g. one per project or one per Kubernetes version.
+
+```bash
+./setup.sh          # prompted for name, e.g. "staging"
+./setup.sh          # run again, e.g. "prod-test"
+```
+
+`access.sh` and `teardown.sh` will show a menu to pick which cluster to target when more than one exists. You can also pass the name directly:
+
+```bash
+./access.sh staging
+./teardown.sh prod-test
+```
+
+Or with make:
+```bash
+make access   CLUSTER=staging
+make teardown CLUSTER=prod-test
+```
+
+---
+
 ## Cluster Management
 
 ```bash
-# check cluster status
-minikube status --profile=testcloud
-
-# stop the cluster (preserves state)
-minikube stop --profile=testcloud
-
-# start it again
-minikube start --profile=testcloud
-
-# list all minikube profiles
+# list all clusters and their state
 minikube profile list
 
+# stop a cluster (preserves state)
+minikube stop --profile=<name>
+
+# start it again
+minikube start --profile=<name>
+
+# check status
+minikube status --profile=<name>
+
 # SSH into the node
-minikube ssh --profile=testcloud
+minikube ssh --profile=<name>
 ```
 
 ---
